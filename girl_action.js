@@ -1,0 +1,237 @@
+// girl_action.js - 完整优化版本
+(function(){
+    // 配置部分
+    const BASE = (typeof image_character_config !== 'undefined' && image_character_config.base_url) 
+        ? image_character_config.base_url 
+        : 'https://acglxg.cc.cd/wp-content/themes/Kizumi-1/assets/images/top/';
+    
+    const NAMES = (typeof image_character_config !== 'undefined' && image_character_config.names) 
+        ? image_character_config.names 
+        : ['lolisister1','lolisister2','dance','meow','lemon','bear'];
+    
+    const EXT = (typeof image_character_config !== 'undefined' && image_character_config.ext) 
+        ? image_character_config.ext 
+        : '.gif';
+
+    // 使用新的元素ID来避免冲突
+    const DRAG_ELEMENT_ID = 'lolijump-drag';
+    
+    // 寻找拖拽元素
+    let girl = document.getElementById(DRAG_ELEMENT_ID);
+    if (!girl) {
+        // 如果找不到，再试试原来的元素
+        girl = document.getElementById('lolijump');
+    }
+    
+    if (!girl) return;
+    
+    let img = girl.querySelector('img');
+    if (!img) return;
+
+    // 获取当前图片索引
+    let idx = NAMES.indexOf(img.src.split('/').pop().replace(/\.[^.]+$/, ''));
+    if (idx < 0) idx = 0;
+
+    // 创建拖拽包装器
+    girl.style.cssText = 'position:static;display:inline-block';
+    let wrap = document.createElement('div');
+    wrap.style.cssText = `position:fixed;z-index:99999;cursor:grab;user-select:none;touch-action:none;right:20px;bottom:100px;width:${girl.offsetWidth}px;height:${girl.offsetHeight}px`;
+    girl.parentNode.insertBefore(wrap, girl);
+    wrap.appendChild(girl);
+
+    // 拖拽逻辑
+    let drag = false, sx, sy, ox, oy;
+    const start = e => {
+        let c = e.type === 'touchstart' ? e.touches[0] : e;
+        let r = wrap.getBoundingClientRect();
+        ox = c.clientX - r.left; oy = c.clientY - r.top;
+        sx = c.clientX; sy = c.clientY;
+        drag = false;
+        wrap.style.cursor = 'grabbing';
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', end);
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', end);
+        document.addEventListener('touchcancel', end);
+        e.preventDefault();
+    };
+    
+    const move = e => {
+        let c = e.type === 'touchmove' ? e.touches[0] : e;
+        let dx = c.clientX - sx, dy = c.clientY - sy;
+        if (!drag && Math.hypot(dx, dy) > 10) {
+            drag = true;
+            wrap.style.right = 'auto';
+            wrap.style.bottom = 'auto';
+        }
+        if (drag) {
+            let x = Math.max(0, Math.min(c.clientX - ox, window.innerWidth - wrap.offsetWidth));
+            let y = Math.max(0, Math.min(c.clientY - oy, window.innerHeight - wrap.offsetHeight));
+            wrap.style.left = x + 'px';
+            wrap.style.top = y + 'px';
+            e.preventDefault();
+        }
+    };
+    
+    const end = e => {
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', end);
+        document.removeEventListener('touchmove', move);
+        document.removeEventListener('touchend', end);
+        document.removeEventListener('touchcancel', end);
+        wrap.style.cursor = 'grab';
+        if (!drag) showMenu(e);
+        drag = false;
+    };
+    
+    wrap.addEventListener('mousedown', start);
+    wrap.addEventListener('touchstart', start, { passive: false });
+
+    // 窗口改变复位
+    window.addEventListener('resize', () => {
+        if (!drag) {
+            wrap.style.right = '20px';
+            wrap.style.bottom = '100px';
+            wrap.style.left = 'auto';
+            wrap.style.top = 'auto';
+        }
+    });
+
+    // 水滴菜单样式
+    if (!document.getElementById('drop-style')) {
+        let s = document.createElement('style');
+        s.id = 'drop-style';
+        s.textContent = `
+            @keyframes dIn { 0%{opacity:0;transform:scale(.6) translateY(30px) rotateX(15deg)} 60%{opacity:1;transform:scale(1.05) translateY(-4px)} 100%{opacity:1;transform:scale(1) translateY(0)} }
+            @keyframes dOut { 0%{opacity:1;transform:scale(1)} 100%{opacity:0;transform:scale(.8) translateY(20px)} }
+            .dc{animation:dIn .4s cubic-bezier(.34,1.56,.64,1) forwards;transform-origin:bottom center;background:radial-gradient(circle at 25% 18%,rgba(255,255,255,.95),rgba(255,240,245,.35) 70%,rgba(200,180,200,.15));border-radius:40px 40px 40px 12px;box-shadow:0 25px 50px -8px rgba(0,0,0,.08),inset -6px -6px 20px rgba(0,0,0,.02),inset 6px 6px 30px rgba(255,255,255,.9),0 0 0 1px rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.6);padding:16px 12px;min-width:150px;max-width:200px;display:flex;flex-direction:column;gap:2px;position:fixed;z-index:100000}
+            .dc::before{content:'';position:absolute;top:8%;left:22%;width:30%;height:18%;background:radial-gradient(circle,rgba(255,255,255,.9) 0%,transparent 100%);border-radius:50%;filter:blur(1px);pointer-events:none}
+            .dc::after{content:'';position:absolute;bottom:12%;right:18%;width:18%;height:10%;background:radial-gradient(circle,rgba(255,255,255,.5) 0%,transparent 100%);border-radius:50%;filter:blur(2px);pointer-events:none}
+            .db{background:transparent;border:none;border-radius:30px;padding:10px 14px;cursor:pointer;width:100%;text-align:left;display:flex;align-items:center;gap:12px;font-size:15px;font-weight:500;color:#2a1a2a;transition:all .25s cubic-bezier(.23,1,.32,1);position:relative;text-shadow:0 1px 3px rgba(255,255,255,.3);letter-spacing:.3px}
+            .db::after{content:'';position:absolute;top:15%;left:8%;width:40%;height:35%;background:radial-gradient(circle,rgba(255,255,255,.3) 0%,transparent 100%);border-radius:50%;pointer-events:none;opacity:0;transition:opacity .3s}
+            .db:hover{background:rgba(255,255,255,.35);transform:scale(1.02);box-shadow:inset 0 2px 15px rgba(255,255,255,.5)}
+            .db:hover::after{opacity:1}
+            .db:active{transform:scale(.94);background:rgba(200,180,220,.2);box-shadow:inset 0 2px 20px rgba(0,0,0,.02)}
+            .db .i{font-size:22px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.02))}
+            .db .l{flex:1;font-size:14px}
+            .dd{height:1px;margin:2px 10px;background:linear-gradient(90deg,transparent,rgba(233,30,99,.06),transparent);border:none}
+            .dcs{position:absolute;top:-8px;right:-8px;width:28px;height:28px;border-radius:50%;border:none;background:radial-gradient(circle at 30% 30%,rgba(255,255,255,.9),rgba(220,200,220,.3));box-shadow:0 25px 50px -8px rgba(0,0,0,.04),inset 0 1px 4px rgba(255,255,255,.8);color:#4a3a4a;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .25s;border:1px solid rgba(255,255,255,.5);backdrop-filter:blur(2px)}
+            .dcs:hover{background:radial-gradient(circle at 30% 30%,rgba(255,200,220,.9),rgba(233,30,99,.15));transform:scale(1.12) rotate(90deg);color:#d44a7a}
+            .dcs:active{transform:scale(.85)}
+            .dc.closing{animation:dOut .2s cubic-bezier(.55,.085,.68,.53) forwards !important;pointer-events:none !important}
+        `;
+        document.head.appendChild(s);
+    }
+
+    let menu = null;
+    const showMenu = e => {
+        if (menu) { closeMenu(); return; }
+        let el = document.createElement('div');
+        el.className = 'dc';
+        let r = wrap.getBoundingClientRect();
+        let left = Math.min(Math.max(r.left + r.width/2 - 75, 10), window.innerWidth - 160);
+        let top = r.top - 140;
+        if (top < 20) top = r.bottom + 16;
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+
+        const MENU = [
+            { icon: '🔄', label: '换形象', action: switchImg },
+            { icon: '📋', label: '复制链接', action: copyLink },
+            { icon: '⬆️', label: '返回顶部', action: goTop }
+        ];
+
+        MENU.forEach((item, i) => {
+            if (i > 0) { let d = document.createElement('div'); d.className = 'dd'; el.appendChild(d); }
+            let btn = document.createElement('button');
+            btn.className = 'db';
+            btn.innerHTML = `<span class="i">${item.icon}</span><span class="l">${item.label}</span>`;
+            let act = e2 => {
+                e2.stopPropagation();
+                if (btn._t) return;
+                btn._t = true;
+                btn.style.transform = 'scale(.92)';
+                setTimeout(() => { btn.style.transform = 'scale(1)'; }, 120);
+                setTimeout(() => { btn._t = false; }, 300);
+                item.action();
+                setTimeout(closeMenu, 60);
+            };
+            btn.addEventListener('click', act);
+            btn.addEventListener('touchstart', e2 => { e2.preventDefault(); act(e2); }, { passive: false });
+            el.appendChild(btn);
+        });
+
+        let close = document.createElement('button');
+        close.className = 'dcs';
+        close.innerHTML = '✕';
+        close.addEventListener('click', e2 => { e2.stopPropagation(); closeMenu(); });
+        close.addEventListener('touchstart', e2 => { e2.preventDefault(); closeMenu(); });
+        el.appendChild(close);
+
+        let out = e2 => {
+            if (el && !el.contains(e2.target) && e2.target !== wrap && !wrap.contains(e2.target)) closeMenu();
+        };
+        document.addEventListener('click', out);
+        document.addEventListener('touchstart', out, { passive: true });
+        el._out = out;
+        document.body.appendChild(el);
+        menu = el;
+    };
+
+    const closeMenu = () => {
+        if (menu && menu.parentNode) {
+            menu.classList.add('closing');
+            setTimeout(() => {
+                if (menu && menu.parentNode) {
+                    if (menu._out) {
+                        document.removeEventListener('click', menu._out);
+                        document.removeEventListener('touchstart', menu._out);
+                    }
+                    menu.parentNode.removeChild(menu);
+                    menu = null;
+                }
+            }, 220);
+        } else {
+            menu = null;
+        }
+    };
+
+    // 功能函数
+    function switchImg() {
+        idx = (idx + 1) % NAMES.length;
+        let src = BASE + NAMES[idx] + EXT;
+        let t = new Image();
+        t.onload = () => { img.src = src; };
+        t.onerror = () => {
+            let fallback = BASE + NAMES[idx] + '.png';
+            let t2 = new Image();
+            t2.onload = () => { img.src = fallback; };
+            t2.onerror = () => alert('换形象失败：' + NAMES[idx] + '\n路径：' + BASE);
+            t2.src = fallback;
+        };
+        t.src = src;
+    }
+
+    function copyLink() {
+        let url = location.href;
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(url).then(() => alert('✅ 链接已复制')).catch(() => fallbackCopy(url));
+        } else {
+            fallbackCopy(url);
+        }
+    }
+    
+    function fallbackCopy(text) {
+        let i = document.createElement('input');
+        i.value = text;
+        document.body.appendChild(i);
+        i.select();
+        document.execCommand('copy');
+        document.body.removeChild(i);
+        alert('✅ 链接已复制');
+    }
+    
+    function goTop() { 
+        window.scrollTo({ top: 0, behavior: 'smooth' }); 
+    }
+})();
